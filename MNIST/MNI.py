@@ -28,31 +28,35 @@ def inference(input_tensor,avg_class, weights1, biases1,weights2,biases2):
 def train(mnist):
     x=tf.placeholder(tf.float32,[None,INPUT_NODE],name='x-input')
     y_=tf.placeholder(tf.float32,[None,OUTPUT_NODE],name='y-input')
-
+#生成隐藏层
     weights1=tf.Variable(
         tf.truncated_normal([INPUT_NODE,LAYER1_NODE],stddev=0.1))
     biases1=tf.Variable(tf.constant(0.1,shape=[LAYER1_NODE]))
-
+#生成输出层
     weights2=tf.Variable(
         tf.truncated_normal([LAYER1_NODE,OUTPUT_NODE],stddev=0.1)
     )
     biases2=tf.Variable(tf.constant(0,1,shape=[OUTPUT_NODE]))
-
+#计算当前参数神经网络前向传播结果 滑动平均的类为null
     y=inference(x,None,weights1,biases1,weights2,biases2)
-
+#定义存储训练轮数的变量 这里指定这个变量为不可训练的参数 trainable=false
     global_step=tf.Variable(0,trainable=False)
-
+#给定训练轮数的变量 初始化滑动平均类
+    # 可以加快训练早期变量的更新速度
     variable_averages=tf.train.ExponentialMovingAverage(MOVING_AVERAGE_DECAY,global_step)
 
+#在所有代表神经网络参数的变量上使用滑动平均。其他辅助变量（比如 global_step)不需要
+#tf.trainable_variable_averages
     variables_averages_op=variable_averages.apply(
         tf.trainable_variables()
     )
-
+#计算使用滑动平均之后的前向传播结果 介绍过滑动平均不会改变变量本身的取值，维护一个影子变量 当需要使用这个滑动平均值时，需要明确调用average函数
     average_y=inference(
         x,variable_averages,weights1,biases1,weights2,biases2)
     cross_entropy=tf.nn.sparse_softmax_cross_entropy_with_logits(
         logits=y,labels=tf.argmax(y_,1)
     )
+
     cross_entropy_mean=tf.reduce_mean(cross_entropy)
 
     regularizer=tf.contrib.layers.l2_regularizer(REGULARIZATION_RATE)
