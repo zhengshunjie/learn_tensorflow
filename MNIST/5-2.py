@@ -4,16 +4,24 @@ from tensorflow.examples.tutorials.mnist import input_data
 mnist=input_data.read_data_sets("MNIST_data",one_hot=True)
 
 batch_size=100
+image_num=3000
+
+DIR="D:/Tensorflow/"
 
 n_batch=mnist.train.num_examples//batch_size
-#定义两个placeholder
-x=tf.placeholder(tf.float32,[None,784])
-y=tf.placeholder(tf.float32,[None,10])
+
+with tf.name_scope('input'):
+    #定义两个placeholder
+    x=tf.placeholder(tf.float32,[None,784],name='x-input')
+    y=tf.placeholder(tf.float32,[None,10],name='y-input')
 keep_prob=tf.placeholder(tf.float32)
 lr=tf.Variable(0.001,dtype=tf.float32)
 #创建神经网络
-W1=tf.Variable(tf.truncated_normal([784,500],stddev=0.1))
-b1=tf.Variable(tf.zeros([500])+0.1)
+with tf.name_scope('layer'):
+    with tf.name_scope('wights'):
+        W1=tf.Variable(tf.truncated_normal([784,500],stddev=0.1))
+    with tf.name_scope('biases'):
+        b1=tf.Variable(tf.zeros([500])+0.1)
 L1=tf.nn.tanh((tf.matmul(x,W1)+b1))
 L1_drop=tf.nn.dropout(L1,keep_prob)
 
@@ -45,9 +53,12 @@ correct_prediction=tf.equal(tf.argmax(y,1),tf.argmax(prediction,1))
 #求准确率
 accuracy=tf.reduce_mean(tf.cast(correct_prediction,tf.float32))
 
+if tf.gfile.Exists(DIR+'projector/prohector/metadata.tsv'):
+    tf.gfile
 with tf.Session() as sess:
     sess.run(init)
-    for epoch in range(51):
+    writer=tf.summary.FileWriter('logs/',sess.graph)
+    for epoch in range(1):
         sess.run(tf.assign(lr,0.001*(0.95**epoch)))
         for batch in range(n_batch):
             #
