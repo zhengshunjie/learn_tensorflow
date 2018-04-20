@@ -51,7 +51,7 @@ with tf.name_scope('Convl'):
         h_pool1=max_pool_2x2(h_conv1)
 
 #初始化第二个卷积层的全值和偏执
-with tf.name_scope('Conv1'):
+with tf.name_scope('Conv2'):
     with tf.name_scope('W_conv2'):
         W_conv2=weight_variable([5,5,32,64])#5*5采样窗口，32个卷积核从1个平面抽取特征
     with tf.name_scope('b_conv2'):
@@ -61,15 +61,18 @@ with tf.name_scope('Conv1'):
         h_conv2=tf.nn.relu(conv2d(h_pool1,W_conv2)+b_conv2)
     with tf.name_scope('h_pool2'):
         h_pool2=max_pool_2x2(h_conv2)
-
-#初始化第一个全连接层的权值
-W_fcl=weight_variable([7*7*64,1024])#上一层有7*7*64个神经元，全连接层有1024个神经元
-b_fcl=bias_variable([1024])#1024个节点
-
-#把池化层2的输出扁平化为1维
-h_pool2_flat=tf.reshape(h_pool2,[-1,7*7*64])
-#求第一个全连接层的输出
-h_fc1=tf.nn.relu(tf.matmul(h_pool2_flat,W_fcl)+b_fcl)
+with tf.name_scope('fc1'):
+    with tf.name_scope('W_fcl'):
+        #初始化第一个全连接层的权值
+        W_fcl=weight_variable([7*7*64,1024])#上一层有7*7*64个神经元，全连接层有1024个神经元
+    with tf.name_scope('b_fcl'):
+        b_fcl=bias_variable([1024])#1024个节点
+    with tf.name_scope('h_pool2_flat'):
+        #把池化层2的输出扁平化为1维
+        h_pool2_flat=tf.reshape(h_pool2,[-1,7*7*64],name='W_fc1')
+    with tf.name_scope('relu'):
+        #求第一个全连接层的输出
+        h_fc1=tf.nn.relu(tf.matmul(h_pool2_flat,W_fcl)+b_fcl)
 
 #keep_prob用来表示神经元的输出概率
 keep_prob=tf.placeholder(tf.float32)
@@ -90,13 +93,28 @@ train_step=tf.train.AdamOptimizer(1e-4).minimize(cross_entropy)
 correct_prediction=tf.equal(tf.argmax(prediction,1),tf.argmax(y,1))
 #求准确率
 accuracy=tf.reduce_mean(tf.cast(correct_prediction,tf.float32))
-
+tf.summary.scalar('accuracy',accuracy)
+merged=tf.summary.merge_all()
 with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
-    for epoch in range(21):
-        for batch in range(n_batch):
-            batch_xs,batch_ys=mnist.train.next_batch(batch_size)
-            sess.run(train_step,feed_dict={x:batch_xs,y:batch_ys,keep_prob:0.7})
+    train_writer=tf.summary.FileWriter('logs/train',sess.graph)
+    test_writer=tf.summary.FileWriter('logs/test',sess.graph)
 
-        acc=sess.run(accuracy,feed_dict={x:mnist.test.images,y:mnist.test.labels,keep_prob:1.0})
-        print("Iter "+str(epoch)+", Testing Accuracy="+str(acc))
+    for i in range(1001):
+        batch_xs,batch_ys=mnist.train.next_batch(batch_size)
+        sess.run(train_step,feed_dict={x:batch_xs,y:batch_ys,keep_prob:0.5})
+        summary = sess.run(merged, feed_dict={x: batch_xs, y: batch_ys, keep_prob: 1.0})
+        train_writer.add_summary(summary,i)
+        batch_xs, batch_ys = mnist.test.next_batch(batch_size)
+
+        summary=sess.run(merged,feed_dict={x: batch_xs, y: batch_ys, keep_prob: 1.0})
+        test_writer.add_summary(summary,i)
+
+        if i%100==0:
+            test_acc=sess.run(accuracy,feed_dict={x:mnist.test.images,y:mnist.test.labels,keep_prob:1.0})
+            train_acc=sess.run(accuracy,feed_dict={x:mnist.train.images[:10000],y:mnist.train.labels[:10000],keep_prob:1.0})
+
+
+
+        # acc=sess.run(accuracy,feed_dict={x:mnist.test.images,y:mnist.test.labels,keep_prob:1.0})
+        # print("Iter "+str(epoch)+", Testing Accuracy="+str(acc))
