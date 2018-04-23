@@ -3,8 +3,8 @@ import os
 import tarfile
 import requests
 
-inception_pretrain_model_url='http://download.tensorflow.org/models/image/imagenet/inception-2015-12-05.tgz'
-
+#inception_pretrain_model_url='http://download.tensorflow.org/models/image/imagenet/inception-2015-12-05.tgz'
+inception_pretrain_model_url='http://download.tensorflow.org/models/deeplabv3_xception_2018_01_04.tar.gz'
 inception_pretrain_model_dir="inception_model"
 if not os.path.exists(inception_pretrain_model_dir):
     os.makedirs(inception_pretrain_model_dir)

@@ -7,7 +7,7 @@ import sys
 #验证集数量
 _NUM_TEST=500
 #随机种子
-_TANDOM_SEED=0
+_RANDOM_SEED=0
 #数据块
 _NUM_SHARDS=5
 #数据集路径
@@ -34,7 +34,7 @@ def _get_filename_and_classes(dataset_dir):
     #数据目录
     directories=[]
     #分类名称
-    class_nmaes=[]
+    class_names=[]
     for filename in os.listdir(dataset_dir):
         #合并文件路径
         path=os.path.join(dataset_dir,filename)
@@ -53,7 +53,7 @@ def _get_filename_and_classes(dataset_dir):
             #把图片加入图片列表
             photo_filenames.append(path)
 
-    return photo_filenames, class_nmaes
+    return photo_filenames, class_names
 
 def int64_feature(values):
     if not isinstance(values,(tuple,list)):
@@ -119,4 +119,23 @@ if __name__=='__main__':
     if _dataset_exists(DATASET_DIR):
         print('tfcecord文件已存在')
     else:
-        #
+        #获得所有图片以及分类
+        photo_filenames,class_names=_get_filename_and_classes(DATASET_DIR)
+        #把分类转化为字典格式
+        class_names_to_ids=dict(zip(class_names,range(len(class_names))))
+
+        #把数据切分为训练集和测试集
+        random.seed(_RANDOM_SEED)
+        random.shuffle(photo_filenames)
+        training_filenames=photo_filenames[_NUM_TEST:]
+        testing_filenames=photo_filenames[:_NUM_TEST]
+
+        #数据转换
+        _convert_dataset('train',training_filenames,class_names_to_ids,DATASET_DIR)
+        _convert_dataset('test',testing_filenames,class_names_to_ids,DATASET_DIR)
+
+        #数据labels文件
+        labels_to_class_names=dict(zip(range(len(class_names)),class_names))
+        write_label_file(labels_to_class_names,DATASET_DIR)
+
+
